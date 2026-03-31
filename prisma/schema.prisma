@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name             String?
+  preferredLanguage String    @default("English")
+  isVerified        Boolean   @default(false)
+  pin               String?
+  signupToken       String?
+  signupTokenExpiry DateTime?
+  notes             Note[]
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Note {
+  id         String   @id @default(uuid())
+  title      String
+  topic      String
+  duration   String
+  wordCount  Int
+  summary            String
+  transcript         String
+  originalSummary    String?
+  originalTranscript String?
+  originalQuiz       String?
+  quiz               String?
+  audioUrl           String?
+  status             String   @default("processed")
+  userId             String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
