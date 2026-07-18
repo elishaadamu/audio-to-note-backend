@@ -859,6 +859,135 @@ app.post("/api/notes/:id/reset", authenticate, async (req: any, res) => {
   }
 });
 
+// --- ADMIN ROUTES ---
+
+app.get("/api/admin/stats", async (req, res) => {
+  try {
+    const totalUsers = await prisma.user.count();
+    const verifiedUsers = await prisma.user.count({ where: { isVerified: true } });
+    const totalNotes = await prisma.note.count();
+    const wordCountSum = await prisma.note.aggregate({
+      _sum: { wordCount: true },
+    });
+
+    const recentUsers = await prisma.user.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, email: true, isVerified: true, createdAt: true },
+    });
+
+    const recentNotes = await prisma.note.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        topic: true,
+        duration: true,
+        createdAt: true,
+        user: { select: { email: true, name: true } },
+      },
+    });
+
+    res.json({
+      totalUsers,
+      verifiedUsers,
+      totalNotes,
+      totalWords: wordCountSum._sum.wordCount || 0,
+      recentUsers,
+      recentNotes,
+      systemStatus: "Healthy",
+    });
+  } catch (error: any) {
+    console.error("Admin stats error:", error);
+    res.status(500).json({ error: "Failed to fetch admin stats: " + error.message });
+  }
+});
+
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isVerified: true,
+        preferredLanguage: true,
+        createdAt: true,
+        _count: { select: { notes: true } },
+      },
+    });
+    res.json(users);
+  } catch (error: any) {
+    console.error("Admin users error:", error);
+    res.status(500).json({ error: "Failed to fetch users." });
+  }
+});
+
+app.get("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { notes: { orderBy: { createdAt: "desc" } } },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to fetch user details." });
+  }
+});
+
+app.delete("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.user.delete({ where: { id } });
+    res.json({ message: "User and associated notes deleted successfully" });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to delete user." });
+  }
+});
+
+app.get("/api/admin/notes", async (req, res) => {
+  try {
+    const notes = await prisma.note.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+    res.json(notes);
+  } catch (error: any) {
+    console.error("Admin notes error:", error);
+    res.status(500).json({ error: "Failed to fetch all notes." });
+  }
+});
+
+app.get("/api/admin/notes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const note = await prisma.note.findUnique({
+      where: { id },
+      include: { user: { select: { name: true, email: true } } },
+    });
+    if (!note) return res.status(404).json({ error: "Note not found" });
+    res.json(note);
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to fetch note." });
+  }
+});
+
+app.delete("/api/admin/notes/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.note.delete({ where: { id } });
+    res.json({ message: "Note deleted successfully by admin" });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to delete note." });
+  }
+});
+
 const HOST = "0.0.0.0";
 
 app.listen(port, HOST, () => {
