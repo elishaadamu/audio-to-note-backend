@@ -1018,6 +1018,41 @@ app.post("/api/admin/settings", async (req, res) => {
   }
 });
 
+app.post("/api/admin/test-email", async (req, res) => {
+  try {
+    const recipient = req.body.recipientEmail || process.env.SMTP_USER;
+    if (!recipient) {
+      return res.status(400).json({ error: "Recipient email or SMTP_USER is required." });
+    }
+
+    const transporter = getTransporter();
+    await transporter.sendMail({
+      from: `"AudioNote Admin Test" <${process.env.SMTP_USER}>`,
+      to: recipient,
+      subject: "🧪 AudioNote SMTP Test Email",
+      html: `
+        <div style="font-family: sans-serif; max-width: 500px; padding: 24px; border: 1px solid #6C63FF; border-radius: 16px; background: #ffffff;">
+          <h2 style="color: #6C63FF; margin-top: 0; font-size: 22px;">SMTP Connection Successful!</h2>
+          <p style="color: #333; font-size: 15px; line-height: 1.6;">
+            Your AudioNote email server credentials for <strong>${process.env.SMTP_USER}</strong> are working perfectly.
+          </p>
+          <div style="background: #f4f3ff; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #6C63FF; font-weight: bold; margin: 16px 0;">
+            ✓ Nodemailer Authentication Passed
+          </div>
+          <p style="color: #888; font-size: 12px; margin-bottom: 0;">
+            Triggered from AudioNote Admin Console at ${new Date().toLocaleString()}.
+          </p>
+        </div>
+      `,
+    });
+
+    res.json({ message: `Test email sent successfully to ${recipient}!` });
+  } catch (error: any) {
+    console.error("Test Email Error:", error);
+    res.status(500).json({ error: "SMTP Connection Error: " + (error.message || error) });
+  }
+});
+
 const HOST = "0.0.0.0";
 
 app.listen(port, HOST, () => {
