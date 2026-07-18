@@ -988,6 +988,36 @@ app.delete("/api/admin/notes/:id", async (req, res) => {
   }
 });
 
+// Admin System Settings Endpoints
+app.get("/api/admin/settings", async (req, res) => {
+  try {
+    res.json({
+      DATABASE_URL: process.env.DATABASE_URL || "",
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
+      JWT_SECRET: process.env.JWT_SECRET || "",
+      SMTP_USER: process.env.SMTP_USER || "",
+      SMTP_PASS: process.env.SMTP_PASS || "",
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to fetch settings." });
+  }
+});
+
+app.post("/api/admin/settings", async (req, res) => {
+  try {
+    const { DATABASE_URL, GEMINI_API_KEY, JWT_SECRET, SMTP_USER, SMTP_PASS } = req.body;
+    if (DATABASE_URL !== undefined) process.env.DATABASE_URL = DATABASE_URL;
+    if (GEMINI_API_KEY !== undefined) process.env.GEMINI_API_KEY = GEMINI_API_KEY;
+    if (JWT_SECRET !== undefined) process.env.JWT_SECRET = JWT_SECRET;
+    if (SMTP_USER !== undefined) process.env.SMTP_USER = SMTP_USER;
+    if (SMTP_PASS !== undefined) process.env.SMTP_PASS = SMTP_PASS;
+
+    res.json({ message: "Environment settings updated successfully in memory!" });
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to update settings." });
+  }
+});
+
 const HOST = "0.0.0.0";
 
 app.listen(port, HOST, () => {
